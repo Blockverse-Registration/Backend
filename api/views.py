@@ -32,9 +32,9 @@ def create_order(request):
     team_type = team_type.lower().strip()
 
     if team_type == "solo":
-        amount = 100
+        amount = 20000
     elif team_type == "duo":
-        amount = 200
+        amount = 35000
     else:
         return Response({"error": "Invalid team type"}, status=400)
 
