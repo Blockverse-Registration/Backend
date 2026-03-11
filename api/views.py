@@ -4,6 +4,7 @@ import hmac
 import requests
 import qrcode
 from io import BytesIO
+from email.mime.image import MIMEImage
 
 from django.conf import settings
 from django.contrib.auth.hashers import make_password
@@ -31,9 +32,9 @@ def create_order(request):
     team_type = team_type.lower().strip()
 
     if team_type == "solo":
-        amount = 20000
+        amount = 100
     elif team_type == "duo":
-        amount = 35000
+        amount = 200
     else:
         return Response({"error": "Invalid team type"}, status=400)
 
@@ -144,26 +145,61 @@ def register_team(request):
         response = Response({"success": True})
 
         try:
-            qr_data = f"{team.team_id}|{payment_id}"
+            qr_data = f"BLOCKVERSE|{team.team_id}|{payment_id}"
             qr = qrcode.make(qr_data)
 
             buffer = BytesIO()
             qr.save(buffer, format="PNG")
             buffer.seek(0)
 
-            subject = "🎉 BlockVerse Registration Confirmed"
+            subject = "🎉 BLOCKVERSE'26 Registration Confirmed — Welcome!"
 
             html_content = f"""
-            <h2>Registration Successful 🎉</h2>
-            <p><b>Team ID:</b> {team.team_id}</p>
-            <p><b>Password:</b> {plain_password}</p>
-            <p>
-            Please keep this information safe.<br>
-            You will use Team ID and Password to register for contests.
-            </p>
-            <p>
-            At the event, show the QR code below to mark your attendance.
-            </p>
+            <div style="font-family: Arial, sans-serif; background:#0f172a; padding:30px;">
+
+                <div style="max-width:600px; margin:auto; background:#111827; border-radius:10px; overflow:hidden; color:white;">
+
+                    <div style="background:linear-gradient(90deg,#22c55e,#16a34a); padding:20px; text-align:center;">
+                        <h2 style="margin:0;">🎉 Welcome to BLOCKVERSE'26</h2>
+                        <p style="margin:5px 0;">Your journey into innovation begins now</p>
+                    </div>
+
+                    <div style="padding:25px;">
+
+                        <p>Dear Participant,</p>
+
+                        <p>
+                        Congratulations! You are officially registered for
+                        <b>BLOCKVERSE'26</b> 🚀
+                        </p>
+
+                        <div style="background:#1f2937; padding:15px; border-radius:8px; margin:20px 0;">
+                            <p><b>Team ID:</b> {team.team_id}</p>
+                            <p><b>Password:</b> {plain_password}</p>
+                        </div>
+
+                        <p>Please show this QR code at entry for attendance verification.</p>
+
+                        <div style="text-align:center; margin:20px 0;">
+                            <img src="cid:qr_code" width="200"/>
+                        </div>
+
+                        <p>
+                        Prepare for challenges, fun, collaboration, and unforgettable memories.
+                        </p>
+
+                        <p>🚀 See you at BlockVerse!</p>
+
+                        <p>
+                        With excitement,<br>
+                        <b>BRL Technical Society ❤️</b>
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
             """
 
             email = EmailMultiAlternatives(
@@ -174,6 +210,11 @@ def register_team(request):
             )
 
             email.attach_alternative(html_content, "text/html")
+
+            qr_image = MIMEImage(buffer.getvalue())
+            qr_image.add_header("Content-ID", "<qr_code>")
+            qr_image.add_header("Content-Disposition", "inline", filename="qr.png")
+            email.attach(qr_image)
 
             email.attach(
                 "BlockVerse_QR.png",
